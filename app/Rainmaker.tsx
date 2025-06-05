@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { ethers } from "ethers";
 import { CloudRain, Upload, Wallet, Zap } from "lucide-react";
 import Head from "next/head";
-toast, { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Papa from "papaparse";
 
