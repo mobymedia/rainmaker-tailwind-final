@@ -15,15 +15,16 @@ const ABI = [
 ];
 
 const CONTRACTS: Record<number, string> = {
-  1: "0xYourEthereumMainnetAddress",
-  56: "0x41c57d044087b1834379CdFE1E09b18698eC3A5A",
-  42161: "0x06b9d57Ba635616F41E85D611b2DA58856176Fa9",
-  137: "0xD375BA042B41A61e36198eAd6666BC0330649403"
+  1: "0xD375BA042B41A61e36198eAd6666BC0330649403", // Ethereum Mainnet
+  56: "0x41c57d044087b1834379CdFE1E09b18698eC3A5A", // BNB Chain
+  42161: "0x06b9d57Ba635616F41E85D611b2DA58856176Fa9", // Arbitrum
+  137: "0xD375BA042B41A61e36198eAd6666BC0330649403" // Polygon
 };
 
 export default function Rainmaker() {
   const [inputText, setInputText] = useState("");
   const [tokenAddress, setTokenAddress] = useState("");
+  const [account, setAccount] = useState<string | null>(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -34,6 +35,14 @@ export default function Rainmaker() {
   useEffect(() => {
     localStorage.setItem("rainmaker-history", inputText);
   }, [inputText]);
+
+  const connectWallet = async () => {
+    if (!window.ethereum) return toast.error("MetaMask not detected");
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const accounts = await provider.send("eth_requestAccounts", []);
+    setAccount(accounts[0]);
+    toast.success("Wallet connected");
+  };
 
   const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -108,9 +117,17 @@ export default function Rainmaker() {
       >
         <div className="max-w-4xl mx-auto rounded-2xl bg-[#1c1c2c] shadow-xl border border-gray-700 overflow-hidden">
           <div className="bg-[#10101a] p-6 md:p-8 border-b border-gray-700">
-            <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
-              <CloudRain className="w-7 h-7 md:w-9 md:h-9 text-blue-400" /> Rainmaker
-            </h1>
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
+                <CloudRain className="w-7 h-7 md:w-9 md:h-9 text-blue-400" /> Rainmaker
+              </h1>
+              <button
+                onClick={connectWallet}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold"
+              >
+                <Wallet className="w-4 h-4" /> {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : "Connect Wallet"}
+              </button>
+            </div>
             <p className="text-sm text-gray-400 mt-2">Bulk token distribution made easy – now with multichain support.</p>
           </div>
 
