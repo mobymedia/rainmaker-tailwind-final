@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { ethers } from "ethers";
 import { CloudRain, Upload, Wallet, Zap } from "lucide-react";
 import Head from "next/head";
-import toast, { Toaster } from "react-hot-toast";
+toast, { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Papa from "papaparse";
 
@@ -182,7 +182,7 @@ export default function Rainmaker() {
               <label className="block text-sm font-semibold mb-2 text-gray-300">Token Address <span className="text-red-500">*</span></label>
               <input
                 type="text"
-                placeholder="Enter token contract address (required)"
+                placeholder="Enter token contract address"
                 className="w-full p-3 text-sm rounded-md bg-[#2a2a3d] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={tokenAddress}
                 onChange={(e) => setTokenAddress(e.target.value)}
