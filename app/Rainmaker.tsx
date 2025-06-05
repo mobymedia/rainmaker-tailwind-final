@@ -77,26 +77,47 @@ export default function Rainmaker() {
       const amounts: ethers.BigNumber[] = [];
       let total = ethers.BigNumber.from(0);
 
-      for (const line of lines) {
-        const [addr, amount] = line.split(",").map(s => s.trim());
-        if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
-        const parsed = ethers.utils.parseUnits(amount, 18);
-        recipients.push(addr);
-        amounts.push(parsed);
-        total = total.add(parsed);
-      }
+      if (tokenAddress.trim() === "") {
+        // Native token mode (ETH, MATIC, etc.)
+        for (const line of lines) {
+          const [addr, amount] = line.split(",").map(s => s.trim());
+          if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
+          const parsed = ethers.utils.parseEther(amount);
+          recipients.push(addr);
+          amounts.push(parsed);
+          total = total.add(parsed);
+        }
 
-      let parsedTokenAddress;
-      try {
-        parsedTokenAddress = ethers.utils.getAddress(tokenAddress.trim());
-      } catch {
-        return toast.error("Valid token address is required");
-      }
+        const tx = await contract.disperseEther(recipients, amounts, { value: total });
+        toast.success("Transaction sent: " + tx.hash);
+        await tx.wait();
+        toast.success("Transaction confirmed ✅");
+      } else {
+        // ERC20 token mode
+        let parsedTokenAddress;
+        try {
+          parsedTokenAddress = ethers.utils.getAddress(tokenAddress.trim());
+        } catch {
+          return toast.error("Valid token address is required");
+        }
 
-      const tx = await contract.disperseToken(parsedTokenAddress, recipients, amounts);
-      toast.success("Transaction sent: " + tx.hash);
-      await tx.wait();
-      toast.success("Transaction confirmed ✅");
+        const tokenContract = new ethers.Contract(parsedTokenAddress, ["function decimals() view returns (uint8)", "function symbol() view returns (string)"], signer);
+        const decimals = await tokenContract.decimals();
+
+        for (const line of lines) {
+          const [addr, amount] = line.split(",").map(s => s.trim());
+          if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
+          const parsed = ethers.utils.parseUnits(amount, decimals);
+          recipients.push(addr);
+          amounts.push(parsed);
+          total = total.add(parsed);
+        }
+
+        const tx = await contract.disperseToken(parsedTokenAddress, recipients, amounts);
+        toast.success("Transaction sent: " + tx.hash);
+        await tx.wait();
+        toast.success("Transaction confirmed ✅");
+      }
     } catch (err: any) {
       toast.error(err.message || "Transaction failed");
     }
@@ -128,7 +149,7 @@ export default function Rainmaker() {
                 <Wallet className="w-4 h-4" /> {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : "Connect Wallet"}
               </button>
             </div>
-            <p className="text-sm text-gray-400 mt-2">Bulk token distribution made easy – now with multichain support.</p>
+            <p className="text-sm text-gray-400 mt-2">Bulk token distribution made easy – now with multichain and native token support.</p>
           </div>
 
           <div className="p-6 md:p-8 space-y-6">
@@ -143,10 +164,10 @@ export default function Rainmaker() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-300">Token Address <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-semibold mb-2 text-gray-300">Token Address <span className="text-yellow-400">(leave blank for ETH/MATIC)</span></label>
               <input
                 type="text"
-                placeholder="Enter token contract address (required)"
+                placeholder="Enter token contract address or leave blank for native token"
                 className="w-full p-3 text-sm rounded-md bg-[#2a2a3d] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={tokenAddress}
                 onChange={(e) => setTokenAddress(e.target.value)}
