@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { ethers } from "ethers";
 import { CloudRain, Upload, Wallet, Zap } from "lucide-react";
 import Head from "next/head";
-toast, { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Papa from "papaparse";
 
@@ -19,6 +19,10 @@ const CONTRACTS: Record<number, string> = {
   56: "0x41c57d044087b1834379CdFE1E09b18698eC3A5A", // BNB Chain
   42161: "0x06b9d57Ba635616F41E85D611b2DA58856176Fa9", // Arbitrum
   137: "0xD375BA042B41A61e36198eAd6666BC0330649403" // Polygon
+};
+
+const TOKEN_DECIMALS_MAP: Record<string, number> = {
+  "0x55d398326f99059fF775485246999027B3197955": 18 // USDT BEP-20 (BNB Chain)
 };
 
 export default function Rainmaker() {
@@ -101,17 +105,15 @@ export default function Rainmaker() {
           return toast.error("Valid token address is required");
         }
 
-        const tokenContract = new ethers.Contract(parsedTokenAddress, [
-          "function decimals() view returns (uint8)",
-          "function symbol() view returns (string)"
-        ], signer);
-
         let decimals: number;
         try {
+          const tokenContract = new ethers.Contract(parsedTokenAddress, [
+            "function decimals() view returns (uint8)"
+          ], signer);
           decimals = await tokenContract.decimals();
         } catch {
-          decimals = 18;
-          toast("⚠️ Couldn't fetch token decimals — defaulting to 18", { icon: "⚠️" });
+          decimals = TOKEN_DECIMALS_MAP[parsedTokenAddress.toLowerCase()] || 18;
+          toast("⚠️ Couldn't fetch token decimals — using fallback", { icon: "⚠️" });
         }
 
         for (const line of lines) {
