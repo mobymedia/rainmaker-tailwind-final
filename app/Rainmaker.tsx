@@ -82,71 +82,57 @@ export default function Rainmaker() {
       const amounts: ethers.BigNumber[] = [];
       let total = ethers.BigNumber.from(0);
 
-      if (tokenAddress.trim() === "") {
-        for (const line of lines) {
-          const parts = line.split(/[\s,]+/).map(s => s.trim());
-          if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
-          const [addr, amount] = parts;
-          if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
-          const parsed = ethers.utils.parseEther(amount);
-          recipients.push(addr);
-          amounts.push(parsed);
-          total = total.add(parsed);
-        }
-
-        const tx = await contract.disperseEther(recipients, amounts, { value: total });
-        toast.success("Transaction sent: " + tx.hash);
-        await tx.wait();
-        toast.success("Transaction confirmed ✅");
-      } else {
-        let parsedTokenAddress;
-        try {
-          parsedTokenAddress = ethers.utils.getAddress(tokenAddress.trim());
-        } catch {
-          return toast.error("Valid token address is required");
-        }
-
-        const tokenContract = new ethers.Contract(parsedTokenAddress, [
-          "function decimals() view returns (uint8)",
-          "function allowance(address owner, address spender) view returns (uint256)",
-          "function approve(address spender, uint256 amount) returns (bool)"
-        ], signer);
-
-        let decimals: number;
-        try {
-          decimals = await tokenContract.decimals();
-        } catch {
-          decimals = TOKEN_DECIMALS_MAP[parsedTokenAddress.toLowerCase()] || 18;
-          toast("⚠️ Couldn't fetch token decimals — using fallback", { icon: "⚠️" });
-        }
-
-        for (const line of lines) {
-          const parts = line.split(/[\s,]+/).map(s => s.trim());
-          if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
-          const [addr, amount] = parts;
-          if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
-          const parsed = ethers.utils.parseUnits(amount, decimals);
-          recipients.push(addr);
-          amounts.push(parsed);
-          total = total.add(parsed);
-        }
-
-        const userAddress = await signer.getAddress();
-        const allowance = await tokenContract.allowance(userAddress, contractAddress);
-
-        if (allowance.lt(total)) {
-          toast("Approval required...", { icon: "🔐" });
-          const approvalTx = await tokenContract.approve(contractAddress, total);
-          toast.success("Approval tx sent: " + approvalTx.hash);
-          await approvalTx.wait();
-          toast.success("Token approved ✅");
-        }
-
-        const tx = await contract.disperseToken(parsedTokenAddress, recipients, amounts);
-        toast.success("Transaction sent: " + tx.hash);
-        await tx.wait();
-        toast.success("Transaction confirmed ✅");
+      if (!tokenAddress.trim()) {
+        return toast.error("Token address is required");
       }
+
+      let parsedTokenAddress;
+      try {
+        parsedTokenAddress = ethers.utils.getAddress(tokenAddress.trim());
+      } catch {
+        return toast.error("Valid token address is required");
+      }
+
+      const tokenContract = new ethers.Contract(parsedTokenAddress, [
+        "function decimals() view returns (uint8)",
+        "function allowance(address owner, address spender) view returns (uint256)",
+        "function approve(address spender, uint256 amount) returns (bool)"
+      ], signer);
+
+      let decimals: number;
+      try {
+        decimals = await tokenContract.decimals();
+      } catch {
+        decimals = TOKEN_DECIMALS_MAP[parsedTokenAddress.toLowerCase()] || 18;
+        toast("⚠️ Couldn't fetch token decimals — using fallback", { icon: "⚠️" });
+      }
+
+      for (const line of lines) {
+        const parts = line.split(/[\s,]+/).map(s => s.trim());
+        if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
+        const [addr, amount] = parts;
+        if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
+        const parsed = ethers.utils.parseUnits(amount, decimals);
+        recipients.push(addr);
+        amounts.push(parsed);
+        total = total.add(parsed);
+      }
+
+      const userAddress = await signer.getAddress();
+      const allowance = await tokenContract.allowance(userAddress, contractAddress);
+
+      if (allowance.lt(total)) {
+        toast("Approval required...", { icon: "🔐" });
+        const approvalTx = await tokenContract.approve(contractAddress, total);
+        toast.success("Approval tx sent: " + approvalTx.hash);
+        await approvalTx.wait();
+        toast.success("Token approved ✅");
+      }
+
+      const tx = await contract.disperseToken(parsedTokenAddress, recipients, amounts);
+      toast.success("Transaction sent: " + tx.hash);
+      await tx.wait();
+      toast.success("Transaction confirmed ✅");
     } catch (err: any) {
       toast.error(err.message || "Transaction failed");
     }
@@ -193,10 +179,10 @@ export default function Rainmaker() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-300">Token Address <span className="text-yellow-400">(leave blank for ETH/MATIC)</span></label>
+              <label className="block text-sm font-semibold mb-2 text-gray-300">Token Address <span className="text-red-500">*</span></label>
               <input
                 type="text"
-                placeholder="Enter token contract address or leave blank for native token"
+                placeholder="Enter token contract address (required)"
                 className="w-full p-3 text-sm rounded-md bg-[#2a2a3d] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={tokenAddress}
                 onChange={(e) => setTokenAddress(e.target.value)}
