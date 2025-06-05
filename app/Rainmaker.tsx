@@ -77,7 +77,9 @@ export default function Rainmaker() {
         total = total.add(parsed);
       }
 
-      if (!ethers.utils.isAddress(tokenAddress)) {
+      try {
+        tokenAddress = ethers.utils.getAddress(tokenAddress);
+      } catch {
         return toast.error("Valid token address is required");
       }
 
