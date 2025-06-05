@@ -247,12 +247,7 @@ export default function Rainmaker() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Toaster position="bottom-right" />
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="min-h-screen bg-gradient-to-br from-[#0f0f0f] to-[#1a1a2e] text-white p-6 md:p-12 font-sans"
-      >
+      <div className="min-h-screen bg-[#0f0f0f] text-white p-4 md:p-8">
         <div className="max-w-4xl mx-auto rounded-2xl bg-[#1c1c2c] shadow-xl border border-gray-700 overflow-hidden">
           <div className="bg-[#10101a] p-6 md:p-8 border-b border-gray-700">
             <div className="flex justify-between items-center flex-wrap gap-4">
@@ -272,7 +267,7 @@ export default function Rainmaker() {
                     </span>
                     <button
                       onClick={disconnectWallet}
-                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-semibold"
+                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
                     >
                       <LogOut className="w-4 h-4" />
                     </button>
@@ -280,7 +275,7 @@ export default function Rainmaker() {
                 ) : (
                   <button
                     onClick={connectWallet}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold"
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
                   >
                     <Wallet className="w-4 h-4" /> Connect Wallet
                   </button>
@@ -294,7 +289,7 @@ export default function Rainmaker() {
                 <button
                   key={id}
                   onClick={() => switchNetwork(Number(id))}
-                  className={`text-xs px-3 py-1 rounded-md transition-all ${
+                  className={`text-xs px-3 py-1 rounded-md transition ${
                     chainId === Number(id)
                       ? "bg-blue-600 text-white"
                       : "bg-[#2a2a3d] text-gray-300 hover:bg-[#3a3a4d]"
@@ -366,7 +361,7 @@ export default function Rainmaker() {
                   isPending
                     ? "bg-gray-600 cursor-not-allowed"
                     : "bg-green-600 hover:bg-green-700"
-                } px-6 py-2.5 rounded-lg text-sm font-semibold shadow-md transition-all`}
+                } px-6 py-2.5 rounded-lg text-sm font-semibold transition`}
               >
                 {isPending ? (
                   <>
@@ -380,7 +375,7 @@ export default function Rainmaker() {
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold shadow-md transition-all"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold transition"
               >
                 <Upload className="w-4 h-4" /> Upload CSV
               </button>
@@ -399,7 +394,7 @@ export default function Rainmaker() {
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
     </>
   );
 }
