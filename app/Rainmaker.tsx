@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { ethers } from "ethers";
-import { CloudRain, Upload, Wallet, Zap, ShieldCheck } from "lucide-react";
+import { CloudRain, Upload, Wallet, Zap } from "lucide-react";
 import Head from "next/head";
 import toast, { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
@@ -14,11 +14,6 @@ const ABI = [
   "function disperseToken(address token, address[] recipients, uint256[] values) external"
 ];
 
-const ERC20_ABI = [
-  "function approve(address spender, uint256 amount) external returns (bool)",
-  "function decimals() view returns (uint8)"
-];
-
 const CONTRACTS: Record<number, string> = {
   1: "0xD375BA042B41A61e36198eAd6666BC0330649403",
   56: "0x41c57d044087b1834379CdFE1E09b18698eC3A5A",
@@ -26,11 +21,14 @@ const CONTRACTS: Record<number, string> = {
   137: "0xD375BA042B41A61e36198eAd6666BC0330649403"
 };
 
+const TOKEN_DECIMALS_MAP: Record<string, number> = {
+  "0x55d398326f99059fF775485246999027B3197955": 18
+};
+
 export default function Rainmaker() {
   const [inputText, setInputText] = useState("");
   const [tokenAddress, setTokenAddress] = useState("");
   const [account, setAccount] = useState<string | null>(null);
-  const [isApproving, setIsApproving] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -64,33 +62,6 @@ export default function Rainmaker() {
     });
   };
 
-  const handleApprove = async () => {
-    if (!window.ethereum || !tokenAddress) return toast.error("Token address and wallet required");
-
-    setIsApproving(true);
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-
-    try {
-      const network = await provider.getNetwork();
-      const chainId = Number(network.chainId);
-      const spender = CONTRACTS[chainId];
-      if (!spender) return toast.error("Unsupported network");
-
-      const token = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-      const amount = ethers.constants.MaxUint256;
-
-      const tx = await token.approve(spender, amount);
-      toast.success("Approval sent: " + tx.hash);
-      await tx.wait();
-      toast.success("Approval confirmed ✅");
-    } catch (err: any) {
-      toast.error(err.message || "Approval failed");
-    } finally {
-      setIsApproving(false);
-    }
-  };
-
   const handleSend = async () => {
     if (!window.ethereum) return toast.error("No wallet found");
 
@@ -100,34 +71,78 @@ export default function Rainmaker() {
     try {
       const network = await provider.getNetwork();
       const chainId = Number(network.chainId);
+
       if (!CONTRACTS[chainId]) return toast.error("Unsupported network");
-      const contract = new ethers.Contract(CONTRACTS[chainId], ABI, signer);
+
+      const contractAddress = CONTRACTS[chainId];
+      const contract = new ethers.Contract(contractAddress, ABI, signer);
 
       const lines = inputText.trim().split("\n").filter(line => line.trim() !== "");
       const recipients: string[] = [];
       const amounts: ethers.BigNumber[] = [];
       let total = ethers.BigNumber.from(0);
 
-      const useNative = tokenAddress.trim() === "";
+      if (tokenAddress.trim() === "") {
+        for (const line of lines) {
+          const parts = line.split(/[\s,]+/).map(s => s.trim());
+          if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
+          const [addr, amount] = parts;
+          if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
+          const parsed = ethers.utils.parseEther(amount);
+          recipients.push(addr);
+          amounts.push(parsed);
+          total = total.add(parsed);
+        }
 
-      for (const line of lines) {
-        const parts = line.split(/[,\s]+/).map(p => p.trim());
-        if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
-        const [addr, amount] = parts;
-        if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
-        const parsed = useNative ? ethers.utils.parseEther(amount) : ethers.utils.parseUnits(amount, 18);
-        recipients.push(addr);
-        amounts.push(parsed);
-        total = total.add(parsed);
-      }
-
-      if (useNative) {
         const tx = await contract.disperseEther(recipients, amounts, { value: total });
         toast.success("Transaction sent: " + tx.hash);
         await tx.wait();
         toast.success("Transaction confirmed ✅");
       } else {
-        const tx = await contract.disperseToken(tokenAddress, recipients, amounts);
+        let parsedTokenAddress;
+        try {
+          parsedTokenAddress = ethers.utils.getAddress(tokenAddress.trim());
+        } catch {
+          return toast.error("Valid token address is required");
+        }
+
+        const tokenContract = new ethers.Contract(parsedTokenAddress, [
+          "function decimals() view returns (uint8)",
+          "function allowance(address owner, address spender) view returns (uint256)",
+          "function approve(address spender, uint256 amount) returns (bool)"
+        ], signer);
+
+        let decimals: number;
+        try {
+          decimals = await tokenContract.decimals();
+        } catch {
+          decimals = TOKEN_DECIMALS_MAP[parsedTokenAddress.toLowerCase()] || 18;
+          toast("⚠️ Couldn't fetch token decimals — using fallback", { icon: "⚠️" });
+        }
+
+        for (const line of lines) {
+          const parts = line.split(/[\s,]+/).map(s => s.trim());
+          if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
+          const [addr, amount] = parts;
+          if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
+          const parsed = ethers.utils.parseUnits(amount, decimals);
+          recipients.push(addr);
+          amounts.push(parsed);
+          total = total.add(parsed);
+        }
+
+        const userAddress = await signer.getAddress();
+        const allowance = await tokenContract.allowance(userAddress, contractAddress);
+
+        if (allowance.lt(total)) {
+          toast("Approval required...", { icon: "🔐" });
+          const approvalTx = await tokenContract.approve(contractAddress, total);
+          toast.success("Approval tx sent: " + approvalTx.hash);
+          await approvalTx.wait();
+          toast.success("Token approved ✅");
+        }
+
+        const tx = await contract.disperseToken(parsedTokenAddress, recipients, amounts);
         toast.success("Transaction sent: " + tx.hash);
         await tx.wait();
         toast.success("Transaction confirmed ✅");
@@ -187,16 +202,6 @@ export default function Rainmaker() {
                 onChange={(e) => setTokenAddress(e.target.value)}
               />
             </div>
-
-            {!tokenAddress ? null : (
-              <button
-                onClick={handleApprove}
-                disabled={isApproving}
-                className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 px-6 py-2.5 rounded-lg text-sm font-semibold shadow-md transition-all"
-              >
-                <ShieldCheck className="w-4 h-4" /> {isApproving ? "Approving..." : "Approve Token"}
-              </button>
-            )}
 
             <div className="flex flex-wrap gap-4 items-center">
               <button
