@@ -57,7 +57,7 @@ export default function Rainmaker() {
 
     try {
       const network = await provider.getNetwork();
-      const chainId = network.chainId;
+      const chainId = Number(network.chainId);
 
       if (!CONTRACTS[chainId]) return toast.error("Unsupported network");
 
