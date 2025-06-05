@@ -77,13 +77,14 @@ export default function Rainmaker() {
         total = total.add(parsed);
       }
 
+      let parsedTokenAddress;
       try {
-        tokenAddress = ethers.utils.getAddress(tokenAddress);
+        parsedTokenAddress = ethers.utils.getAddress(tokenAddress.trim());
       } catch {
         return toast.error("Valid token address is required");
       }
 
-      const tx = await contract.disperseToken(tokenAddress, recipients, amounts);
+      const tx = await contract.disperseToken(parsedTokenAddress, recipients, amounts);
       toast.success("Transaction sent: " + tx.hash);
       await tx.wait();
       toast.success("Transaction confirmed ✅");
