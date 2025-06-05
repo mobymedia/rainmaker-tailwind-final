@@ -101,7 +101,17 @@ export default function Rainmaker() {
           return toast.error("Valid token address is required");
         }
 
-        const tokenContract = new ethers.Contract(parsedTokenAddress, ["function decimals() view returns (uint8)", "function symbol() view returns (string)"], signer);
+        const tokenContract = new ethers.Contract(parsedTokenAddress, [
+          "function decimals() view returns (uint8)",
+          "function symbol() view returns (string)"
+        ], signer);
+
+        try {
+          await tokenContract.decimals();
+        } catch {
+          return toast.error("Token contract not found on current network. Check if your wallet is connected to the correct chain.");
+        }
+
         const decimals = await tokenContract.decimals();
 
         for (const line of lines) {
