@@ -76,7 +76,7 @@ export default function Rainmaker() {
 
       const contract = new ethers.Contract(CONTRACTS[chainId], ABI, signer);
 
-      const lines = inputText.trim().split("\n");
+      const lines = inputText.trim().split("\n").filter(line => line.trim() !== "");
       const recipients: string[] = [];
       const amounts: ethers.BigNumber[] = [];
       let total = ethers.BigNumber.from(0);
@@ -84,7 +84,9 @@ export default function Rainmaker() {
       if (tokenAddress.trim() === "") {
         // Native token mode (ETH, MATIC, etc.)
         for (const line of lines) {
-          const [addr, amount] = line.split(",").map(s => s.trim());
+          const parts = line.split(",").map(s => s.trim());
+          if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
+          const [addr, amount] = parts;
           if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
           const parsed = ethers.utils.parseEther(amount);
           recipients.push(addr);
@@ -117,7 +119,9 @@ export default function Rainmaker() {
         }
 
         for (const line of lines) {
-          const [addr, amount] = line.split(",").map(s => s.trim());
+          const parts = line.split(",").map(s => s.trim());
+          if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
+          const [addr, amount] = parts;
           if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
           const parsed = ethers.utils.parseUnits(amount, decimals);
           recipients.push(addr);
