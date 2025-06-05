@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { ethers } from "ethers";
 import { CloudRain, Upload, Wallet, Zap } from "lucide-react";
 import Head from "next/head";
-import toast, { Toaster } from "react-hot-toast";
+toast, { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
 import Papa from "papaparse";
 
@@ -106,13 +106,13 @@ export default function Rainmaker() {
           "function symbol() view returns (string)"
         ], signer);
 
+        let decimals: number;
         try {
-          await tokenContract.decimals();
+          decimals = await tokenContract.decimals();
         } catch {
-          return toast.error("Token contract not found on current network. Check if your wallet is connected to the correct chain.");
+          decimals = 18;
+          toast("⚠️ Couldn't fetch token decimals — defaulting to 18", { icon: "⚠️" });
         }
-
-        const decimals = await tokenContract.decimals();
 
         for (const line of lines) {
           const [addr, amount] = line.split(",").map(s => s.trim());
