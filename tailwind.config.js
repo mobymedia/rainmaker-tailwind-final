@@ -1,22 +1,27 @@
-module.exports = {
-  content: [
-    "./app/**/*.{js,ts,jsx,tsx}",
-    "./pages/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}"
-  ],
-  theme: {
-    extend: {
-      colors: {
-        dark: {
-          DEFAULT: '#0f0f0f',
-          secondary: '#1a1a2e',
-          card: '#1c1c2c',
-          header: '#10101a',
-          input: '#2a2a3d',
-          hover: '#3a3a4d'
-        }
-      }
-    },
+{
+  "name": "rainmaker-tailwind",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
-  plugins: [],
+  "dependencies": {
+    "ethers": "^5.7.2",
+    "framer-motion": "^10.12.16",
+    "lucide-react": "^0.270.0",
+    "next": "13.4.12",
+    "papaparse": "^5.4.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.3",
+    "@types/react": "^18.0.28",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.21",
+    "tailwindcss": "^3.3.2",
+    "typescript": "^5.1.3"
+  }
 }
