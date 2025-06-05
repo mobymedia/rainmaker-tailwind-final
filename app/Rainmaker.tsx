@@ -82,9 +82,8 @@ export default function Rainmaker() {
       let total = ethers.BigNumber.from(0);
 
       if (tokenAddress.trim() === "") {
-        // Native token mode (ETH, MATIC, etc.)
         for (const line of lines) {
-          const parts = line.split(",").map(s => s.trim());
+          const parts = line.split(/[\s,]+/).map(s => s.trim());
           if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
           const [addr, amount] = parts;
           if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
@@ -99,7 +98,6 @@ export default function Rainmaker() {
         await tx.wait();
         toast.success("Transaction confirmed ✅");
       } else {
-        // ERC20 token mode
         let parsedTokenAddress;
         try {
           parsedTokenAddress = ethers.utils.getAddress(tokenAddress.trim());
@@ -119,7 +117,7 @@ export default function Rainmaker() {
         }
 
         for (const line of lines) {
-          const parts = line.split(",").map(s => s.trim());
+          const parts = line.split(/[\s,]+/).map(s => s.trim());
           if (parts.length !== 2) throw new Error(`Malformed line: "${line}"`);
           const [addr, amount] = parts;
           if (!ethers.utils.isAddress(addr)) throw new Error(`Invalid address: ${addr}`);
